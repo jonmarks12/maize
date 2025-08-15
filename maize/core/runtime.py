@@ -103,8 +103,14 @@ ProcessType = Union["Process", "SpawnProcess", "ForkProcess", "ForkServerProcess
 
 
 def cleanup_processes(items: list[Runnable], procs: list[ProcessType], wait_time: float = 1.0) -> None:
+    if not procs:
+        logging.debug("No processes to cleanup; skipping.")
+        return
+    
+    orphan_processes = len(procs) > len(items)
+
     end_time = time.time() + wait_time
-    for item, proc in zip(items, procs, strict=True):
+    for item, proc in zip(items, procs, strict=False):
         item.cleanup()
         join_time = max(0, min(end_time - time.time(), wait_time))
         proc.join(join_time)
@@ -124,6 +130,10 @@ def cleanup_processes(items: list[Runnable], procs: list[ProcessType], wait_time
             log.debug(
                 "Killed '%s' (PID %s) with exitcode %s", proc.name, proc.pid, proc.exitcode
             )
+    if orphan_processes:
+        raise RuntimeError(
+            "processes list longer than items list; possible orphan processes"
+        )
 
 
 class RunPool:
