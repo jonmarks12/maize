@@ -1,4 +1,4 @@
-from maize.core.interface import Parameter, Output, Input, MultiInput
+from maize.core.interface import Parameter, Output, Input
 from maize.core.node import Node
 import os
 from mlfsm.cos import FreezingString
