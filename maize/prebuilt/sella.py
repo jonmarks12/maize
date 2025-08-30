@@ -4,6 +4,7 @@ import os
 
 import sys
 import torch
+import numpy as np
 from typing import Any
 from ase.io import read, write
 from ase.calculators.calculator import Calculator, all_changes
