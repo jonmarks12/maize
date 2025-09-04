@@ -6,6 +6,7 @@ from mlfsm.opt import CartesianOptimizer
 from mlfsm.geom import project_trans_rot
 import numpy as np
 import ase
+from ts_searches_pydantic import FSMInput
 
 class RunMLFSM(Node):
     """
@@ -54,6 +55,8 @@ class RunMLFSM(Node):
         reactant = self.reactant.receive()
         product = self.product.receive()
         calculator = self.calculator.receive()
+        
+        FSMInput.validate_fsm_input(reactant,product)
         
         #Align reactant and product
         _,prod_aligned = project_trans_rot(reactant.get_positions(),product.get_positions())
