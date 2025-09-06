@@ -8,10 +8,11 @@ import numpy as np
 import ase
 from maize.prebuilt.ts_searches_pydantic import FSMInput
 
+
 class RunMLFSM(Node):
     """
     Run the ML-FSM.
-    
+
     Inputs:
         -Reactant: ase.Atoms
         -Product: ase.Atoms
@@ -20,13 +21,14 @@ class RunMLFSM(Node):
     Outputs:
         -TS Guess: ase.Atoms
     """
+
     reactant = Input["ase.Atoms"]()
     product = Input["ase.Atoms"]()
     calculator = Input["ASECalculator"]()
-    #run_directory = Input[str]() #TODO make it grab a directory from prior nodes
+    # run_directory = Input[str]() #TODO make it grab a directory from prior nodes
     ts_out = Output[str]()
     fsm_loc = Output[str]()
-        
+
     nnodes_min: Parameter[int] = Parameter(default=18)
     interp: Parameter[str] = Parameter(default="ric")
     ninterp: Parameter[int] = Parameter(default=50)
@@ -35,7 +37,7 @@ class RunMLFSM(Node):
     maxiter: Parameter[int] = Parameter(default=2)
     dmax: Parameter[float] = Parameter(default=0.05)
     outdir: Parameter[str] = Parameter(default=".")
-    
+
     def get_ts(self, fsm_string) -> ase.Atoms:
         """
         Get the ase.Atoms object of the TS guess from final FSM string
@@ -45,35 +47,29 @@ class RunMLFSM(Node):
         energy = list(energy - energy.min())
         ts_index = energy.index(max(energy))
         return path[ts_index]
-        
-    
+
     def run(self) -> None:
         """
         Runs FSM with specified parameters and inputs
         """
 
-        #Get inputs
+        # Get inputs
         reactant = self.reactant.receive()
         product = self.product.receive()
         calculator = self.calculator.receive()
-        
-        
-        FSMInput.validate_fsm_input(reactant,product)
-        
-        #Align reactant and product
-        _,prod_aligned = project_trans_rot(reactant.get_positions(),product.get_positions())
-        product.set_positions(prod_aligned.reshape(-1,3))
-        
-        #Set up optimizer
+
+        FSMInput.validate_fsm_input(reactant, product)
+
+        # Align reactant and product
+        _, prod_aligned = project_trans_rot(reactant.get_positions(), product.get_positions())
+        product.set_positions(prod_aligned.reshape(-1, 3))
+
+        # Set up optimizer
         optimizer = CartesianOptimizer(
-            calculator,
-            self.method.value,
-            self.maxiter.value,
-            self.maxls.value,
-            self.dmax.value
+            calculator, self.method.value, self.maxiter.value, self.maxls.value, self.dmax.value
         )
 
-        #Build the string
+        # Build the string
         string = FreezingString(
             reactant,
             product,
@@ -82,15 +78,15 @@ class RunMLFSM(Node):
             self.ninterp.value,
         )
 
-        #Run FSM
+        # Run FSM
         while string.growing:
             string.grow()
             string.optimize(optimizer)
             string.write(self.outdir.value)
 
-        #get TS guess geometry
+        # get TS guess geometry
         ts_guess = self.get_ts(string)
 
-        #send TS guess
+        # send TS guess
         self.ts_out.send(ts_guess)
-        self.fsm_loc.send(self.outdir.value)                  
+        self.fsm_loc.send(self.outdir.value)

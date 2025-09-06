@@ -4,10 +4,12 @@ from ase.io import read
 from maize.core.interface import Parameter, Output, Input, MultiOutput
 from maize.core.node import Node
 
+
 class _FeedCalculator(Node):
     calculator = Parameter[str]()
     out = Output["ASECalculator"]()
     out_sella = Output["ASECalculator"]()
+
     def run(self) -> None:
         # Load calculator
         if self.calculator.value == "qchem":
@@ -63,20 +65,24 @@ class _FeedCalculator(Node):
             from mace.calculators import mace_omol
 
             dev = "cuda" if torch.cuda.is_available() else "cpu"
-            calc = mace_omol(model="extra_large",device=dev)
+            calc = mace_omol(model="extra_large", device=dev)
         else:
             raise ValueError(f"Unknown calculator {calculator}")
         calc2 = calc
         self.out_sella.send(calc2)
         self.out.send(calc)
 
+
 class _FeedAtoms(Node):
     path: Parameter[str] = Parameter()
     out: Output["ASEAtoms"] = Output()
+
     def run(self) -> None:
         from ase.io import read
+
         atoms = read(self.path.value)
         self.out.send(atoms)
+
 
 class _FeedInitial(Node):
     path: Parameter[str] = Parameter()
@@ -85,20 +91,21 @@ class _FeedInitial(Node):
 
     def run(self) -> None:
         from ase.io import read
-        atoms = read(self.path.value,index=':')
-        reaction_dir = os.path.dirname(self.path.value)
-        with open(os.path.join(reaction_dir,"chg")) as f:
-            chg = int(f.read())
-        with open(os.path.join(reaction_dir,"mult")) as f:
-             mult = int(f.read())
-        atoms[0].info.update({'charge': chg, 'spin': mult}) #works for FAIRchem models
-        atoms[1].info.update({'charge': chg, 'spin': mult})
 
-        #update the actual ase information
+        atoms = read(self.path.value, index=":")
+        reaction_dir = os.path.dirname(self.path.value)
+        with open(os.path.join(reaction_dir, "chg")) as f:
+            chg = int(f.read())
+        with open(os.path.join(reaction_dir, "mult")) as f:
+            mult = int(f.read())
+        atoms[0].info.update({"charge": chg, "spin": mult})  # works for FAIRchem models
+        atoms[1].info.update({"charge": chg, "spin": mult})
+
+        # update the actual ase information
         chg_list = atoms[0].get_initial_charges()
         chg_list[0] = chg
         mult_list = atoms[0].get_initial_magnetic_moments()
-        mult_list[0] = mult-1
+        mult_list[0] = mult - 1
 
         atoms[0].set_initial_magnetic_moments(mult_list)
         atoms[0].set_initial_charges(chg_list)
