@@ -6,7 +6,7 @@ from mlfsm.opt import CartesianOptimizer
 from mlfsm.geom import project_trans_rot
 import numpy as np
 import ase
-from ts_searches_pydantic import FSMInput
+from maize.prebuilt.ts_searches_pydantic import FSMInput
 
 class RunMLFSM(Node):
     """
@@ -23,8 +23,9 @@ class RunMLFSM(Node):
     reactant = Input["ase.Atoms"]()
     product = Input["ase.Atoms"]()
     calculator = Input["ASECalculator"]()
-    run_directory = Output[str]()
+    #run_directory = Input[str]() #TODO make it grab a directory from prior nodes
     ts_out = Output[str]()
+    fsm_loc = Output[str]()
         
     nnodes_min: Parameter[int] = Parameter(default=18)
     interp: Parameter[str] = Parameter(default="ric")
@@ -55,6 +56,7 @@ class RunMLFSM(Node):
         reactant = self.reactant.receive()
         product = self.product.receive()
         calculator = self.calculator.receive()
+        
         
         FSMInput.validate_fsm_input(reactant,product)
         
@@ -91,4 +93,4 @@ class RunMLFSM(Node):
 
         #send TS guess
         self.ts_out.send(ts_guess)
-        self.run_directory.send(self.outdir.value)                  
+        self.fsm_loc.send(self.outdir.value)                  
