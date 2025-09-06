@@ -1,6 +1,8 @@
 from maize.core.interface import Parameter, Output, Input
 from maize.core.node import Node
+from typing import Dict, Any
 import os
+import subprocess
 
 import numpy as np
 import ase
@@ -17,10 +19,39 @@ class RunPRFO(Node):
 
     ts_guess = Input["ASEAtoms"]()
     run_directory = Input[str]()
+    output_success = Output[Dict[str,Any]]()
+    output_failed = Output[Dict[str,Any]]()
     
     method: Parameter[str] = Parameter(default = "wb97x-v")
     basis: Parameter[str] = Parameter(default = "def2-tzvp")
     num_threads: Parameter[int] = Parameter(default = 16)
+    
+    @staticmethod
+    def _processtsout(outfile)->Dict:
+        opt_cycles = []
+        opt_conv = False
+        success = False
+        im_freqs = []
+        energy = None
+        opt_e = 0
+        with open(outfile,'r') as f:
+            data = f.readlines()
+            for i,line in enumerate(data):
+                if "Final energy is" in line:
+                    energy = float(line.split()[-1])
+                    success = True
+                    opt_conv = True
+                if "nergy is  " in line:
+                    opt_e = float(line.split()[-1])
+                if "   Optimization Cycle:" in line:
+                    opt_cycles.append(int(line.split()[-1]))
+                if "INFRARED INTENSITIES (KM/MOL)" in line:
+                    freqs = data[i+6].split()[1:]
+        if float(freqs[0]) >= 0.0:
+            success = False
+        if float(freqs[1]) <=0.0:
+            success = False
+        return {"Success":success,"Opt Convergence":opt_conv,"Final Energy":energy,"Opt Cycles":opt_cycles,"Final Frequencies": freqs}
 
     def _writetsqcin(self,structure,filename,chg,mult) -> None:
         """
@@ -67,4 +98,12 @@ class RunPRFO(Node):
             chg = charge,
             mult = multiplicity
         )
-        os.system(f"qchem -nt {self.num_threads.value} {filename} {filename}.out")
+        subprocess.run(
+            ["qchem","-nt",str(self.num_threads.value),filename,f"{filename}.out"],
+            check=True
+        )
+        prfo_res = self._processtsout(f"{filename}.out")
+        if prfo_res['Success']:
+            self.output_success.send(prfo_res)
+        if not prfo_res['Success']:
+            self.output_failed.send(prfo_res)

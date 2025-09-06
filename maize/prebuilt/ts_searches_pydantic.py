@@ -16,7 +16,7 @@ class FSMInput(BaseModel):
                 f"ML-FSM requires equal number of atoms in reactant and product"
                 f"reactant: {len(r_symbols)}, product={len(p_symbols)}"
             )
-        if r_symbols == p_symbols:
+        if r_symbols != p_symbols:
             raise ValueError(
                 f"ML-FSM requires same identical atom ordering in reactant and product"
                 f"Reactant: {r_symbols}"
