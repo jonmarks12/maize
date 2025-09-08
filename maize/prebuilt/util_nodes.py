@@ -8,7 +8,6 @@ from maize.core.node import Node
 class _FeedCalculator(Node):
     calculator = Parameter[str]()
     out = Output["ASECalculator"]()
-    out_sella = Output["ASECalculator"]()
 
     def run(self) -> None:
         # Load calculator
@@ -68,8 +67,6 @@ class _FeedCalculator(Node):
             calc = mace_omol(model="extra_large", device=dev)
         else:
             raise ValueError(f"Unknown calculator {calculator}")
-        calc2 = calc
-        self.out_sella.send(calc2)
         self.out.send(calc)
 
 
