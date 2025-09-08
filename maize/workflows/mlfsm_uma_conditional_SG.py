@@ -155,20 +155,11 @@ if __name__ == "__main__":
     flow.connect(feedCalc.out, copy.inp)
     flow.connect(copy.out, mlfsm.calculator)
     flow.connect(copy.out, SG.calculator)
-    #     flow.connect(feedCalc.out, mlfsm.calculator)
-    #     flow.connect(feedCalc.out_sella, SG.calculator)
     flow.connect(optR.atoms_out, mlfsm.reactant)
     flow.connect(optP.atoms_out, mlfsm.product)
     flow.connect(mlfsm.ts_out, SG.ts_guess)
     flow.connect(mlfsm.fsm_loc, SG.run_directory)
     flow.connect(SG.out, terminal_1.inp)
-
-    #     flow.connect(mlfsm.ts_out, sella.ts_guess)
-    #     flow.connect(mlfsm.fsm_loc, sella.run_directory)
-    #     flow.connect(sella.ts_out_atoms, prfo.ts_guess)
-    #     flow.connect(sella.ts_out_loc, prfo.run_directory)
-    #     flow.connect(prfo.output_success, terminal_1.inp)
-    #     flow.connect(prfo.output_failed, terminal_2.inp)
 
     # Run
     flow.check()
