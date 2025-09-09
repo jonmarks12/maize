@@ -8,7 +8,7 @@ from maize.prebuilt.qchem_prfo import RunPRFO
 from maize.prebuilt.sella import RunSellaTS
 from maize.prebuilt.ase_optimize import OptimizeGeometryAtoms
 from maize.prebuilt.util_nodes import _FeedCalculator, _FeedAtoms, _FeedInitial
-from maize.steps.plumbing import Merge
+from maize.steps.plumbing import Merge, Copy
 
 
 class TerminalNode(Node):
@@ -112,6 +112,7 @@ if __name__ == "__main__":
         _FeedCalculator, name="feed_calculator", parameters=dict(calculator=args.calculator)
     )
     feedI = flow.add(_FeedInitial, name="feed_initial", parameters=dict(path=args.initial))
+    copy = flow.add(Copy["ASECalculator"])
 
     optR = flow.add(
         OptimizeGeometryAtoms,
@@ -151,20 +152,14 @@ if __name__ == "__main__":
     # Wire it up
     flow.connect(feedI.reactant, optR.atoms_in)
     flow.connect(feedI.product, optP.atoms_in)
-    flow.connect(feedCalc.out, mlfsm.calculator)
-    flow.connect(feedCalc.out_sella, SG.calculator)
+    flow.connect(feedCalc.out, copy.inp)
+    flow.connect(copy.out, mlfsm.calculator)
+    flow.connect(copy.out, SG.calculator)
     flow.connect(optR.atoms_out, mlfsm.reactant)
     flow.connect(optP.atoms_out, mlfsm.product)
     flow.connect(mlfsm.ts_out, SG.ts_guess)
     flow.connect(mlfsm.fsm_loc, SG.run_directory)
     flow.connect(SG.out, terminal_1.inp)
-
-    #     flow.connect(mlfsm.ts_out, sella.ts_guess)
-    #     flow.connect(mlfsm.fsm_loc, sella.run_directory)
-    #     flow.connect(sella.ts_out_atoms, prfo.ts_guess)
-    #     flow.connect(sella.ts_out_loc, prfo.run_directory)
-    #     flow.connect(prfo.output_success, terminal_1.inp)
-    #     flow.connect(prfo.output_failed, terminal_2.inp)
 
     # Run
     flow.check()

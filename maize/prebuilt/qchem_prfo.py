@@ -110,7 +110,8 @@ class RunPRFO(Node):
         # some calculators store charges this way
         charge = int(np.sum(ts_guess.get_initial_charges()))
         multiplicity = int(np.sum(ts_guess.get_initial_magnetic_moments()) + 1)
-        filename = run_directory + "ts_guess.qcin"
+        filename = os.path.join(run_directory,"ts_guess.qcin")
+        print(f"Filename: {filename}")
         self._writetsqcin(structure=ts_guess, filename=filename, chg=charge, mult=multiplicity)
         subprocess.run(
             ["qchem", "-nt", str(self.num_threads.value), filename, f"{filename}.out"], check=True
