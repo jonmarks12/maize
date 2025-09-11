@@ -28,8 +28,9 @@ class RunSellaTS(Node):
     calculator = Input["ASECalculator"]()
 
     # outputs
-    ts_out_loc = Output[str]()
-    ts_out_atoms = Output["ASEAtoms"]()
+    out: Output[dict[str,Any]] = Output()
+#     ts_out_loc = Output[str]()
+#     ts_out_atoms = Output["ASEAtoms"]()
 
     # parameters
     fmax: Parameter[float] = Parameter(default=5e-3)
@@ -48,6 +49,7 @@ class RunSellaTS(Node):
         dyn = Sella(ts_guess, trajectory=os.path.join(run_directory, "sella.traj"))
         dyn.run(self.fmax.value, self.max_steps.value)
         write(os.path.join(run_directory, "sella_guess.xyz"), ts_guess, format="xyz")
-
-        self.ts_out_loc.send(run_directory)
-        self.ts_out_atoms.send(ts_guess)
+        
+        self.out.send({"ts_guess":ts_guess,"run_directory":run_directory,"name":"sella_guess"})
+#         self.ts_out_loc.send(run_directory)
+#         self.ts_out_atoms.send(ts_guess)
