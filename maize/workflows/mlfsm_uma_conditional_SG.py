@@ -19,15 +19,13 @@ class TerminalNode(Node):
         print("Reached Terminal Node")
         print(received)
 
-
 class TS_refinement_controller(Node):
     ts_guess = Input["ASEAtoms"]()
     run_directory = Input[str]()
     run_mlfsm = Input[Dict[str, Any]]()
     ts_copy1 = Output["ASEAtoms"]()
     run_out1 = Output[str]()
-    ts_copy2 = Output["ASEAtoms"]()
-    run_out2 = Output[str]()
+    prfo_fsm_input: Output[dict[str,Any]] = Output()
 
     def run(self) -> None:
         ts_guess = self.ts_guess.receive()
@@ -36,8 +34,9 @@ class TS_refinement_controller(Node):
         self.run_out1.send(run_dir)
         run_mlfsm_guess = self.run_mlfsm.receive()
         if not run_mlfsm_guess["Success"]:
-            self.ts_copy2.send(ts_guess)
-            self.run_out2.send(run_dir)
+            self.prfo_fsm_input.send({"ts_guess":ts_guess,"run_directory":run_dir,"name":"fsm_guess"})
+#             self.ts_copy2.send(ts_guess)
+#             self.run_out2.send(run_dir)
 
 
 class TSRefinement(Graph):
@@ -49,7 +48,7 @@ class TSRefinement(Graph):
 
     def build(self) -> None:
         controller = flow.add(TS_refinement_controller, name="duplicate_ts_guess")
-        sella = flow.add(RunSellaTS, name="run_sella")
+        sella = flow.add(RunSellaTS, name="run_sella",parameters=dict(fmax=0.01,max_steps=100))
         prfo_sella = flow.add(
             RunPRFO, name="run_prfo_sella", parameters=dict(method="B3LYP", basis="6-31g(d)")
         )
@@ -65,12 +64,10 @@ class TSRefinement(Graph):
 
         self.connect(controller.ts_copy1, sella.ts_guess)
         self.connect(controller.run_out1, sella.run_directory)
-        self.connect(sella.ts_out_atoms, prfo_sella.ts_guess)
-        self.connect(sella.ts_out_loc, prfo_sella.run_directory)
+        self.connect(sella.out, prfo_sella.inp)
         self.connect(prfo_sella.output_failed, controller.run_mlfsm)
         self.connect(prfo_sella.output_success, merge.inp)
-        self.connect(controller.ts_copy2, prfo_fsm.ts_guess)
-        self.connect(controller.run_out2, prfo_fsm.run_directory)
+        self.connect(controller.prfo_fsm_input, prfo_fsm.inp)
         self.connect(prfo_fsm.output_success, merge.inp)
         self.connect(prfo_fsm.output_failed, merge.inp)
 
@@ -164,3 +161,4 @@ if __name__ == "__main__":
     # Run
     flow.check()
     flow.execute()
+    

@@ -8,7 +8,6 @@ import numpy as np
 import ase
 from maize.prebuilt.ts_searches_pydantic import FSMInput
 
-
 class RunMLFSM(Node):
     """
     Run the ML-FSM.
@@ -37,6 +36,7 @@ class RunMLFSM(Node):
     maxiter: Parameter[int] = Parameter(default=2)
     dmax: Parameter[float] = Parameter(default=0.05)
     outdir: Parameter[str] = Parameter(default=".")
+    max_fsm_iters: Parameter[int] = Parameter(default=200)
 
     def get_ts(self, fsm_string) -> ase.Atoms:
         """
@@ -79,10 +79,19 @@ class RunMLFSM(Node):
         )
 
         # Run FSM
-        while string.growing:
+        iter_count = 0
+        limit = int(self.max_fsm_iters.value)
+        while string.growing and iter_count < limit:
             string.grow()
             string.optimize(optimizer)
             string.write(self.outdir.value)
+            iter_count += 1
+        
+        if string.growing:
+            raise RuntimeError(
+                f"FSM did not converge within max_fsm_iters={self.max_fsm_iters.value} "
+                f"Stopped after {iter_count} iterations"
+            )
 
         # get TS guess geometry
         ts_guess = self.get_ts(string)

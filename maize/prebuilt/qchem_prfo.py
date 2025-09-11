@@ -17,9 +17,10 @@ class RunPRFO(Node):
     Outputs:
         -None
     """
-
-    ts_guess = Input["ASEAtoms"]()
-    run_directory = Input[str]()
+    inp: Input[dict[str,Any]] = Input()
+#     ts_guess = Input["ASEAtoms"]()
+#     run_directory = Input[str]()
+#     name = Input[str]()
     output_success = Output[Dict[str, Any]]()
     output_failed = Output[Dict[str, Any]]()
 
@@ -32,7 +33,7 @@ class RunPRFO(Node):
         opt_cycles = []
         opt_conv = False
         success = False
-        im_freqs = []
+        freqs = []
         energy = None
         opt_e = 0
         with open(outfile, "r") as f:
@@ -104,14 +105,18 @@ class RunPRFO(Node):
             )
 
     def run(self) -> None:
-        ts_guess = self.ts_guess.receive()
-        run_directory = self.run_directory.receive()
+        inp = self.inp.receive()
+        ts_guess = inp['ts_guess']
+        run_directory = inp['run_directory']
+        name = inp['name']
+#         ts_guess = self.ts_guess.receive()
+#         run_directory = self.run_directory.receive()
+#         name = self.name.receieve()
 
         # some calculators store charges this way
         charge = int(np.sum(ts_guess.get_initial_charges()))
         multiplicity = int(np.sum(ts_guess.get_initial_magnetic_moments()) + 1)
-        filename = os.path.join(run_directory,"ts_guess.qcin")
-        print(f"Filename: {filename}")
+        filename = os.path.join(run_directory,f"{name}.qcin")
         self._writetsqcin(structure=ts_guess, filename=filename, chg=charge, mult=multiplicity)
         subprocess.run(
             ["qchem", "-nt", str(self.num_threads.value), filename, f"{filename}.out"], check=True
