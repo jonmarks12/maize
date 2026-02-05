@@ -5,7 +5,6 @@ import os
 import subprocess
 
 import numpy as np
-import ase
 
 
 class RunPRFO(Node):
@@ -18,9 +17,6 @@ class RunPRFO(Node):
         -None
     """
     inp: Input[dict[str,Any]] = Input()
-#     ts_guess = Input["ASEAtoms"]()
-#     run_directory = Input[str]()
-#     name = Input[str]()
     output_success = Output[Dict[str, Any]]()
     output_failed = Output[Dict[str, Any]]()
 
@@ -109,9 +105,6 @@ class RunPRFO(Node):
         ts_guess = inp['ts_guess']
         run_directory = inp['run_directory']
         name = inp['name']
-#         ts_guess = self.ts_guess.receive()
-#         run_directory = self.run_directory.receive()
-#         name = self.name.receieve()
 
         # some calculators store charges this way
         charge = int(np.sum(ts_guess.get_initial_charges()))
